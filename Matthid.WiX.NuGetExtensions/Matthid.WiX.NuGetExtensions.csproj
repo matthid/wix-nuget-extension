@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <TargetFrameworks>net452</TargetFrameworks>
+    <Description>Simple WiX extension to resolve paths to installed NuGet packages. See https://github.com/matthid/wix-nuget-extension</Description>
+    <Title>NuGet WiX Extensions.</Title>
+    <Authors>Matthias Dittrich</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>wix;nuget;preprocessor;extension</PackageTags>
+    <RepositoryUrl>https://github.com/matthid/wix-nuget-extension</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

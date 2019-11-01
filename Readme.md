@@ -1,5 +1,7 @@
 # NuGet Extension for WiX Projects
 
+Simple WiX extension to resolve paths to installed NuGet packages.
+
 ## Install
 
 Just install the `Matthid.WiX.NuGetExtensions` package into your WiX project via NuGet.
@@ -16,3 +18,7 @@ You can use:
 <Property Id="FUNCTIONTEST" Value="$(nuget.GetPath(MyPackageName))/tools/Installer.msi" />
 <Property Id="FUNCTIONTEST" Value="$(nuget.GetPath(MyPackageName))/tools/Installer_$(nuget.GetVersion(MyPackageName)).msi" />
 ```
+
+## Build/Release
+
+Version=1.0.0 dotnet pack -c Release wix-nuget-extension.sln
