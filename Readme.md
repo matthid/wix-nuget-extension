@@ -21,4 +21,5 @@ You can use:
 
 ## Build/Release
 
-Version=1.0.0 dotnet pack -c Release wix-nuget-extension.sln
+- Run all tests in VS Test Runner
+- Run `Version=1.0.0 dotnet pack -c Release wix-nuget-extension.sln`

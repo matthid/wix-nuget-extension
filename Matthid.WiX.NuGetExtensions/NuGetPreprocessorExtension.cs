@@ -31,13 +31,13 @@ namespace Matthid.WiX.NuGetExtensions
                                 if (args.Length == 1)
                                 {
                                     var packageName = args[0];
-                                    result = NuGetLogic.GetPackagePath(@"..\packages", packageName);
+                                    result = NuGetLogic.GetPackagePath(Environment.CurrentDirectory, @"..\packages", packageName);
                                 }
                                 else if (args.Length == 2)
                                 {
                                     var packagesPath = args[0];
                                     var packageName = args[1];
-                                    result = NuGetLogic.GetPackagePath(packagesPath, packageName);
+                                    result = NuGetLogic.GetPackagePath(Environment.CurrentDirectory, packagesPath, packageName);
                                 }
                                 else
                                 {
@@ -56,7 +56,7 @@ namespace Matthid.WiX.NuGetExtensions
                                 if (args.Length == 1)
                                 {
                                     var packageName = args[0];
-                                    result = NuGetLogic.GetPackageVersion(packageName);
+                                    result = NuGetLogic.GetPackageVersion(Environment.CurrentDirectory, packageName);
                                 }
                                 else
                                 {

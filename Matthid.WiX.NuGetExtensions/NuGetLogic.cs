@@ -9,7 +9,7 @@ namespace Matthid.WiX.NuGetExtensions
 {
     public class NuGetLogic
     {
-        private static string GetNuGetCacheDir()
+        internal static string GetNuGetCacheDir()
         {
             var cacheDir = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
             if (!string.IsNullOrEmpty(cacheDir))
@@ -37,14 +37,14 @@ namespace Matthid.WiX.NuGetExtensions
             return Path.Combine(userProfile, ".nuget", "packages");
         }
 
-        public static string GetPackageVersion(string packageName)
+        public static string GetPackageVersion(string baseDir, string packageName)
         {
-            return RetrievePackageVersion(packageName);
+            return RetrievePackageVersion(baseDir, packageName);
         }
 
-        public static string GetPackagePath(string packagesPath, string packageName)
+        public static string GetPackagePath(string baseDir, string packagesPath, string packageName)
         {
-            var version = RetrievePackageVersion(packageName);
+            var version = RetrievePackageVersion(baseDir, packageName);
 
             // Look in the nuget cache first
             var cacheDir = GetNuGetCacheDir();
@@ -57,9 +57,10 @@ namespace Matthid.WiX.NuGetExtensions
                 }
             }
 
-            if (Directory.Exists(packagesPath))
+            var resolvedPackagePath = Path.Combine(baseDir, packagesPath);
+            if (Directory.Exists(resolvedPackagePath))
             {
-                var available = Directory.EnumerateDirectories(packagesPath, $"{packageName}.*").ToList();
+                var available = Directory.EnumerateDirectories(resolvedPackagePath, $"{packageName}.*").ToList();
                 var first = available.FirstOrDefault();
                 if (first != null && available.Count == 1)
                 {
@@ -73,7 +74,7 @@ namespace Matthid.WiX.NuGetExtensions
                             "Package path could not be found (are all packages restored?).");
                     }
                     
-                    var correctPath = available.FirstOrDefault(folder => folder.Contains(version));
+                    var correctPath = available.FirstOrDefault(folder => folder.ContainsEx(version));
                     if (correctPath == null)
                     {
                         throw new InvalidOperationException(
@@ -88,7 +89,7 @@ namespace Matthid.WiX.NuGetExtensions
                     $"Package path with correct version '{version}' could not be found (are all packages restored?).");
         }
 
-        private static string RetrievePackageVersion(string packageName)
+        private static string RetrievePackageVersion(string baseDir, string packageName)
         {
             var errs = new List<Exception>();
             var misses = new List<string>();
@@ -115,7 +116,7 @@ namespace Matthid.WiX.NuGetExtensions
                         misses.Add(errorPrefix + $"File '{file}' was not found");
                         break;
                     case RetrievePackageVersionResult.PackageNotFoundInFile:
-                        misses.Add(errorPrefix + $"package '{packageName}' was not found in the file '{file}'");
+                        misses.Add(errorPrefix + $"Package '{packageName}' was not found in the file '{file}'");
                         break;
                     case RetrievePackageVersionResult.VersionAttributeMissing:
                         misses.Add(errorPrefix + "Version attribute could not be found");
@@ -130,28 +131,35 @@ namespace Matthid.WiX.NuGetExtensions
 
                 return false;
             }
-            if (File.Exists("packages.config"))
+
+            var packagesConfig = Path.Combine(baseDir, "packages.config");
+            if (File.Exists(packagesConfig))
             {
-                var res = TryRetrieveVersionFromPackagesConfig(packageName, out var version, out var error);
-                var msg = "Count not retrieve from packages.config: ";
-                if (ShouldReturn(res, version, "packages.config", msg, error, out var result))
+                var res = TryRetrieveVersionFromPackagesConfig(baseDir, packageName, out var version, out var error);
+                var msg = "Could not retrieve from packages.config: ";
+                if (ShouldReturn(res, version, packagesConfig, msg, error, out var result))
                 {
                     return result;
                 }
             }
 
-            var projectFiles = Directory.EnumerateFiles("*.*proj");
+            var projectFiles = Directory.EnumerateFiles(baseDir, "*.*proj");
             foreach (var projectFile in projectFiles)
             {
                 var res = TryRetrieveVersionFromProjectFile(projectFile, packageName, out var version, out var error);
-                var msg = "Count not retrieve from via project file: ";
+                var msg = "Could not retrieve via project file: ";
                 if (ShouldReturn(res, version, projectFile, msg, error, out var result))
                 {
                     return result;
                 }
             }
 
-            throw new AggregateException("Unable to find packages path, the following failures occured: \n -" + string.Join("\n - ", misses), errs);
+            if (misses.Count == 0)
+            {
+                misses.Add($"Neither 'packages.config' nor any project file was found in '{Path.GetFullPath(baseDir)}'");
+            }
+
+            throw new AggregateException("Unable to find packages path, the following failures occured: \n - " + string.Join("\n - ", misses), errs);
         }
 
         private static RetrievePackageVersionResult TryRetrieveVersionFromProjectFile(string projectName, string packageName, out string version, out Exception error)
@@ -163,7 +171,7 @@ namespace Matthid.WiX.NuGetExtensions
                 return RetrievePackageVersionResult.MissingProjectFile;
             }
 
-            var packageLine = File.ReadAllLines(projectName).FirstOrDefault(l => l.Contains($"nclude=\"{packageName}\""));
+            var packageLine = File.ReadAllLines(projectName).FirstOrDefault(l => l.ContainsEx($"nclude=\"{packageName}\""));
             if (packageLine == null)
             {
                 return RetrievePackageVersionResult.PackageNotFoundInFile;
@@ -190,16 +198,17 @@ namespace Matthid.WiX.NuGetExtensions
             }
         }
 
-        private static RetrievePackageVersionResult TryRetrieveVersionFromPackagesConfig(string packageName, out string version, out Exception error)
+        private static RetrievePackageVersionResult TryRetrieveVersionFromPackagesConfig(string baseDir, string packageName, out string version, out Exception error)
         {
             version = null;
             error = null;
-            if (!File.Exists("packages.config"))
+            var packagesConfigFile = Path.Combine(baseDir, "packages.config");
+            if (!File.Exists(packagesConfigFile))
             {
                 return RetrievePackageVersionResult.NoPackagesConfig;
             }
 
-            var packageLine = File.ReadAllLines("packages.config").FirstOrDefault(l => l.Contains($"id=\"{ packageName}\""));
+            var packageLine = File.ReadAllLines(packagesConfigFile).FirstOrDefault(l => l.ContainsEx($"id=\"{ packageName}\""));
             if (packageLine == null)
             {
                 return RetrievePackageVersionResult.PackageNotFoundInFile;
