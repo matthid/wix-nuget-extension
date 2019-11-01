@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Tools.WindowsInstallerXml;
 
+[assembly: AssemblyDefaultWixExtension(typeof(Matthid.WiX.NuGetExtensions.NuGetWixExtension))]
+
 namespace Matthid.WiX.NuGetExtensions
 {
     public class NuGetWixExtension : WixExtension
